@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة تحكم مدير المخازن</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm">
+            <h2>مدير المخازن</h2>
+            <div>
+                <a href="/logout" class="btn btn-danger btn-sm">تسجيل الخروج</a>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <!-- بطاقة إجمالي الأصناف -->
+            <div class="col-md-4 mb-3">
+                <div class="card text-white bg-primary shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">إجمالي الأصناف</h5>
+                        <p class="card-text fs-3 fw-bold"><%= itemCount %></p>
+                        <a href="/manager/items" class="btn btn-light btn-sm mt-2">عرض الأصناف</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- بطاقة سجل العهد المنصرفة -->
+            <div class="col-md-4 mb-3">
+                <div class="card text-white bg-success shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">سجل العهد المنصرفة</h5>
+                        <p class="card-text fs-3 fw-bold"><%= custodyCount %></p>
+                        <a href="/manager/custodies" class="btn btn-light btn-sm mt-2">عرض العهد والبحث</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- بطاقة مستخدمي النظام -->
+            <div class="col-md-4 mb-3">
+                <div class="card text-white bg-info shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">مستخدمو النظام</h5>
+                        <p class="card-text fs-3 fw-bold"><%= userCount %></p>
+                        <a href="/manager/users" class="btn btn-light btn-sm mt-2">إدارة المستخدمين</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- بطاقة إجمالي قيمة المخزن -->
+            <div class="col-md-4 mb-3">
+                <div class="card text-white bg-warning shadow-sm h-100">
+                    <div class="card-body text-center d-flex flex-column justify-content-center">
+                        <h5 class="card-title">💰 إجمالي قيمة المخزن</h5>
+                        <p class="card-text fs-3 fw-bold">
+                            <%= typeof totalInventoryValue !== 'undefined' ? totalInventoryValue.toLocaleString() : 0 %> ج.م
+                        </p>
+                        <small class="text-white">إجمالي تكلفة جميع الأصناف الحالية</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

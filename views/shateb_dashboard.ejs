@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة تحكم كاتب الشطب</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; }
+        .navbar { background: #343a40; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .navbar ul { list-style: none; display: flex; margin: 0; padding: 0; }
+        .navbar ul li { margin-left: 40px; }
+        .navbar ul li a { color: white; text-decoration: none; font-size: 15px; }
+        .logout-btn { background: #dc3545; padding: 5px 10px; border-radius: 4px; color: white; text-decoration: none; }
+        .container { max-width: 1000px; margin: 30px auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        h3 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 8px; }
+        .form-row { display: flex; gap: 15px; margin-bottom: 15px; }
+        .form-group { flex: 1; }
+        label { display: block; margin-bottom: 5px; font-size: 14px; color: #555; }
+        input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button.btn-add { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 15px; }
+        button.btn-add:hover { background: #218838; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #dee2e6; padding: 10px; text-align: center; font-size: 14px; }
+        th { background: #007bff; color: white; }
+        tr:nth-child(even) { background: #f2f2f2; }
+        .action-cell { display: flex; justify-content: center; gap: 15px; align-items: center; }
+        .action-item { display: flex; align-items: center; gap: 4px; text-decoration: none; font-size: 13px; font-weight: bold; }
+        .edit-link { color: #007bff; }
+        .delete-link { color: #dc3545; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h2>نظام المخازن - كاتب الشطب</h2>
+    <ul>
+        <li><a href="/shateb/dashboard">الرئيسية</a></li>
+        <li><a href="/account">حسابي</a></li>
+        <li><a href="/login" style="background: #dc3545; padding: 5px 10px; border-radius: 4px; color: white; text-decoration: none; ">تسجيل خروج</a></li>
+    </ul>
+</div>
+
+<div class="container">
+    <h3><%= editItem ? 'تعديل صنف' : 'إضافة صنف جديد' %></h3>
+    <form action="<%= editItem ? '/shateb/update-item/' + editItem.id : '/shateb/add-item' %>" method="POST">
+        <div class="form-row">
+            <div class="form-group">
+                <label>رقم الصنف</label>
+                <input type="text" name="item_number" value="<%= editItem ? editItem.item_number : '' %>" required>
+            </div>
+            <div class="form-group">
+                <label>اسم الصنف</label>
+                <input type="text" name="item_name" value="<%= editItem ? editItem.item_name : '' %>" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>الكمية</label>
+                <input type="number" name="quantity" value="<%= editItem ? editItem.quantity : '' %>" required>
+            </div>
+            <div class="form-group">
+                <label>سعر الوحدة</label>
+                <input type="number" step="0.01" name="price" value="<%= editItem ? editItem.price : '' %>" required>
+            </div>
+        </div>
+        <button type="submit" class="btn-add"><%= editItem ? 'تحديث الصنف' : 'حفظ الصنف' %></button>
+        <% if (editItem) { %>
+            <a href="/shateb/dashboard" style="margin-right: 10px; color: #dc3545; text-decoration: none;">إلغاء التعديل</a>
+        <% } %>
+    </form>
+
+    <h3 style="margin-top: 40px;">قائمة الأصناف المضافة</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>المسلسل</th>
+                <th>رقم الصنف</th>
+                <th>اسم الصنف</th>
+                <th>الكمية</th>
+                <th>سعر الوحدة</th>
+                <th>الإجمالي</th>
+                <th>التحكم</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (items.length > 0) { %>
+                <% items.forEach((item, index) => { %>
+                    <tr>
+                        <td><%= index + 1 %></td>
+                        <td><%= item.item_number %></td>
+                        <td><%= item.item_name %></td>
+                        <td><%= item.quantity %></td>
+                        <td><%= item.price %></td>
+                        <td><%= (item.quantity * item.price).toFixed(2) %></td>
+                        <td>
+                            <div class="action-cell">
+                                <!-- زر التعديل مع كلمة تعديل -->
+                                <a href="/shateb/edit-item/<%= item.id %>" class="action-item edit-link" title="تعديل">
+                                    ✏️ تعديل
+                                </a>
+                                <!-- زر الحذف مع كلمة حذف -->
+                                <a href="/shateb/delete-item/<%= item.id %>" class="action-item delete-link" title="حذف" onclick="return confirm('هل أنت متأكد من الحذف؟')">
+                                    🗑️ حذف
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                <% }) %>
+            <% } else { %>
+                <tr>
+                    <td colspan="7">لا توجد أصناف مضافة حتى الآن</td>
+                </tr>
+            <% } %>
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

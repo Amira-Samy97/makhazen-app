@@ -1,0 +1,131 @@
+<!-- <!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة تحكم أمين المخزن</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; }
+        .navbar { background: #343a40; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .navbar ul { list-style: none; display: flex; margin: 0; padding: 0; align-items: center; }
+        .navbar ul li { margin-left: 40px; }
+        .navbar ul li a { color: white; text-decoration: none; font-size: 15px; }
+        .logout-btn { background: #dc3545; padding: 5px 10px; border-radius: 4px; color: white; text-decoration: none; }
+        .container { max-width: 1050px; margin: 30px auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        h3 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 8px; }
+        .form-row { display: flex; gap: 15px; margin-bottom: 15px; }
+        .form-group { flex: 1; }
+        label { display: block; margin-bottom: 5px; font-size: 14px; color: #555; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button.btn-add { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 15px; }
+        button.btn-add:hover { background: #0056b3; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #dee2e6; padding: 10px; text-align: center; font-size: 14px; }
+        th { background: #007bff; color: white; }
+        tr:nth-child(even) { background: #f2f2f2; }
+        .alert-error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #f5c6cb; }
+        .action-cell { display: flex; justify-content: center; gap: 15px; align-items: center; }
+        .edit-link { color: #007bff; text-decoration: none; font-weight: bold; }
+        .delete-link { color: #dc3545; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h2>نظام المخازن - أمين المخزن</h2>
+    <ul>
+        <li><a href="/storekeeper/dashboard">الرئيسية</a></li>
+        <li><a href="/storekeeper/warehouse">المخازن</a></li>
+        <li><a href="/account">حسابي</a></li>
+        <li><a href="/logout" class="logout-btn">تسجيل خروج</a></li>
+    </ul>
+</div>
+
+<div class="container">
+    <% if (locals.error && error) { %>
+        <div class="alert-error"><%= error %></div>
+    <% } %>
+
+    <h3><%= editStore ? 'تعديل حركة صرف مخزنية' : 'تسجيل صرف من المخزن' %></h3>
+    <form action="<%= editStore ? '/storekeeper/update/' + editStore.id : '/storekeeper/add' %>" method="POST">
+        <div class="form-row">
+            <div class="form-group">
+                <label>اختر الصنف من المخزن</label>
+                <select name="item_name" required>
+                    <option value="">-- اختار الصنف --</option>
+                    <% if (items && items.length > 0) { %>
+                        <% items.forEach(item => { %>
+                            <option value="<%= item.item_name %>" <%= editStore && editStore.item_name === item.item_name ? 'selected' : '' %>>
+                                <%= item.item_name %> (المتاح: <%= item.quantity %>)
+                            </option>
+                        <% }) %>
+                    <% } %>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>الكمية المصروفة</label>
+                <input type="number" name="quantity" value="<%= editStore ? editStore.quantity : '' %>" required min="1">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>اسم المستلم</label>
+                <input type="text" name="receiver" value="<%= editStore ? editStore.receiver : '' %>" required>
+            </div>
+            <div class="form-group">
+                <label>القسم / الجهة</label>
+                <input type="text" name="department" value="<%= editStore ? editStore.department : '' %>" required>
+            </div>
+            <div class="form-group">
+                <label>تاريخ الصرف</label>
+                <input type="date" name="date" value="<%= editStore ? editStore.date : '' %>" required>
+            </div>
+        </div>
+        <button type="submit" class="btn-add"><%= editStore ? 'تحديث الحركة' : 'تسجيل وحفظ الصرف' %></button>
+        <% if (editStore) { %>
+            <a href="/storekeeper/dashboard" style="margin-right: 10px; color: #dc3545; text-decoration: none;">إلغاء التعديل</a>
+        <% } %>
+    </form>
+
+    <h3 style="margin-top: 40px;">سجل الحركات المصروفة من المخزن</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>المسلسل</th>
+                <th>اسم الصنف</th>
+                <th>الكمية</th>
+                <th>اسم المستلم</th>
+                <th>الجهة / القسم</th>
+                <th>تاريخ الصرف</th>
+                <th>التحكم</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (transactions && transactions.length > 0) { %>
+                <% transactions.forEach((tx, index) => { %>
+                    <tr>
+                        <td><%= index + 1 %></td>
+                        <td><%= tx.item_name %></td>
+                        <td><%= tx.quantity %></td>
+                        <td><%= tx.receiver %></td>
+                        <td><%= tx.department %></td>
+                        <td><%= tx.date %></td>
+                        <td>
+                            <div class="action-cell">
+                                <a href="/storekeeper/edit/<%= tx.id %>" class="edit-link">✏️ تعديل</a>
+                                <a href="/storekeeper/delete/<%= tx.id %>" class="delete-link" onclick="return confirm('هل أنت متأكد من الحذف؟ سيتم إرجاع الكمية للمخزن تلقائياً')">🗑️ حذف</a>
+                            </div>
+                        </td>
+                    </tr>
+                <% }) %>
+            <% } else { %>
+                <% /* Source 1 */ %>
+                <tr>
+                    <td colspan="7">لا توجد حركات مسجلة حتى الآن</td>
+                </tr>
+            <% } %>
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html> -->

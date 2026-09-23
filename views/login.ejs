@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تسجيل الدخول - نظام المخازن</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 350px; }
+        h2 { text-align: center; color: #333; }
+        .form-group { margin-bottom: 15px; position: relative; }
+        label { display: block; margin-bottom: 5px; color: #666; }
+        input[type="text"], input[type="password"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .password-container { position: relative; }
+        .toggle-password { position: absolute; left: 10px; top: 10px; cursor: pointer; font-size: 16px; background: none; border: none; }
+        .checkbox-group { display: flex; align-items: center; justify-content: space-between; font-size: 14px; margin-bottom: 15px; }
+        button { width: 100%; background: #007bff; color: white; border: none; padding: 10px; border-radius: 4px; font-size: 16px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .error { color: red; font-size: 13px; text-align: center; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <h2>تسجيل الدخول</h2>
+    <% if (error) { %> <div class="error"><%= error %></div> <% } %>
+    <form action="/login" method="POST">
+        <div class="form-group">
+            <label>اسم المستخدم</label>
+            <input type="text" name="username" required>
+        </div>
+        <div class="form-group">
+            <label>الرقم السري</label>
+            <div class="password-container">
+                <input type="password" name="password" id="password" required>
+            </div>
+        </div>
+        <div class="checkbox-group">
+            <label><input type="checkbox" name="remember"> تذكرني</label>
+            <a href="/forgot-password" style="color: #007bff; text-decoration: none;">نسيت كلمة السر؟</a>
+        </div>
+        <button type="submit">دخول</button>
+    </form>
+</div>
+
+<script>
+    function togglePassword() {
+        const pwdInput = document.getElementById('password');
+        if (pwdInput.type === 'password') {
+            pwdInput.type = 'text';
+        } else {
+            pwdInput.type = 'password';
+        }
+    }
+</script>
+
+</body>
+</html>

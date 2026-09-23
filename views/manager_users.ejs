@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إدارة مستخدمي النظام</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm">
+            <h2>إدارة مستخدمي النظام</h2>
+            <a href="/manager/dashboard" class="btn btn-secondary btn-sm">العودة للرئيسية</a>
+        </div>
+
+        <!-- رسائل التنبيه -->
+        <% if (typeof error !== 'undefined' && error) { %>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                حدث خطأ ما في العملية!
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <% } %>
+
+        <% if (typeof query !== 'undefined' && query.success === 'updated') { %>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                تم تعديل بيانات المستخدم بنجاح
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <% } %>
+
+        <% if (typeof query !== 'undefined' && query.success === 'deleted') { %>
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                تم حذف المستخدم بنجاح! 
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <% } %>
+
+        <% if (typeof query !== 'undefined' && query.success === 'added') { %>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                تم إضافة المستخدم الجديد بنجاح! 
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <% } %>
+
+        <!-- نموذج إضافة مستخدم جديد -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">إضافة مستخدم جديد</div>
+            <div class="card-body">
+                <form action="/manager/users/add" method="POST" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">اسم المستخدم</label>
+                        <input type="text" name="username" class="form-control" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">كلمة المرور</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">رقم الهاتف</label>
+                        <input type="text" name="phone" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">البريد الإلكتروني</label>
+                        <input type="email" name="email" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">الصلاحية</label>
+                        <select name="role" class="form-select" required>
+                            <option value="shateb">كاتب شطب</option>
+                            <option value="custody">مسؤول عهد</option>
+                            <option value="manager">مدير</option>
+                        </select>
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-success">إضافة المستخدم</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- جدول عرض المستخدمين -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark text-white">قائمة المستخدمين الحاليين</div>
+            <div class="card-body table-responsive">
+                <table class="table table-striped table-hover text-center align-middle">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>اسم المستخدم</th>
+                            <th>رقم الهاتف</th>
+                            <th>البريد الإلكتروني</th>
+                            <th>الصلاحية</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (users.length > 0) { %>
+                            <% users.forEach((u, index) => { %>
+                                <tr>
+                                    <td><%= index + 1 %></td>
+                                    <td><strong><%= u.username %></strong></td>
+                                    <td><%= u.phone || '-' %></td>
+                                    <td><%= u.email || '-' %></td>
+                                    <td>
+                                        <% if (u.role === 'manager') { %>
+                                            <span class="badge bg-secondary">مدير</span>
+                                        <% } else if (u.role === 'shateb') { %>
+                                            <span class="badge bg-secondary">كاتب شطب</span>
+                                        <% } else { %>
+                                            <span class="badge bg-secondary">مسؤول عهد</span>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <% if (user.role === 'manager') { %>
+                                            <% if (u.id !== user.id) { %>
+                                                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal<%= u.id %>">تعديل</button>
+                                                <a href="/manager/users/delete/<%= u.id %>" class="btn btn-sm" style="background-color: #f1a8ae; color: #842029; border: 1px solid #f5c2c7;" onclick="return confirm('هل أنت متأكد من حذف هذا المستخدم؟')">حذف</a>
+                                            <% } else { %>
+                                                <span class="text-muted small">حسابك الحالي</span>
+                                            <% } %>
+                                        <% } else { %>
+                                            <span class="text-muted small">غير متاح</span>
+                                        <% } %>
+                                    </td>
+                                </tr>
+
+                                <!-- نافذة التعديل المنبثقة (Modal) -->
+                                <div class="modal fade" id="editModal<%= u.id %>" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content text-end">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">تعديل بيانات المستخدم: <%= u.username %></h5>
+                                                <button type="button" class="btn-close m-0" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <form action="/manager/users/edit/<%= u.id %>" method="POST">
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">اسم المستخدم</label>
+                                                        <input type="text" name="username" class="form-control" value="<%= u.username %>" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">كلمة المرور الجديدة</label>
+                                                        <input type="text" name="password" class="form-control" value="<%= u.password %>" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">رقم الهاتف</label>
+                                                        <input type="text" name="phone" class="form-control" value="<%= u.phone || '' %>">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">البريد الإلكتروني</label>
+                                                        <input type="email" name="email" class="form-control" value="<%= u.email || '' %>">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">الصلاحية</label>
+                                                        <select name="role" class="form-select" required>
+                                                            <option value="shateb" <%= u.role === 'shateb' ? 'selected' : '' %>>كاتب شطب</option>
+                                                            <option value="custody" <%= u.role === 'custody' ? 'selected' : '' %>>مسؤول عهد</option>
+                                                            <option value="manager" <%= u.role === 'manager' ? 'selected' : '' %>>مدير</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                                    <button type="submit" class="btn btn-success">حفظ التعديلات</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        <% } else { %>
+                            <tr><td colspan="6" class="text-muted">لا توجد مسجلين حالياً.</td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

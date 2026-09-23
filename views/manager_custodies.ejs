@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>سجل العهد</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .print-header {
+            display: none;
+        }
+
+        @media print {
+            @page {
+                size: A4;
+                margin: 10mm;
+            }
+            body {
+                background-color: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .container {
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .d-flex, .btn, form, nav, .card-body form {
+                display: none !important;
+            }
+            .card {
+                border: none !important;
+                box-shadow: none !important;
+                margin: 0 !important;
+            }
+            .card-body {
+                padding: 0 !important;
+            }
+            .print-header {
+                display: flex !important;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 2px solid #333;
+                padding-bottom: 8px !important;
+                margin-bottom: 10px !important;
+            }
+            .print-header img {
+                height: 65px;
+                width: auto;
+            }
+            table {
+                margin-top: 0 !important;
+            }
+            table th, table td {
+                padding: 6px !important;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-4">
+        
+        <!-- ترويسة الطباعة الرسمية -->
+        <div class="print-header">
+            <div class="text-end" style="flex: 1;">
+                <h4 class="mb-1 fw-bold" style="font-size: 18px;">جامعة مدينة السادات</h4>
+                <p class="mb-0 text-muted" style="font-size: 13px;">إدارة المخازن والعهد</p>
+            </div>
+            <div style="flex: 1; text-align: center;">
+                <img src="/images/logo.png" alt="شعار جامعة مدينة السادات">
+            </div>
+            <div class="text-start" style="flex: 1;">
+                <h5 class="mb-1 fw-bold" style="font-size: 16px;">نظام المخازن</h5>
+                <p class="mb-0 text-muted"><small>تاريخ الطباعة: <%= new Date().toLocaleDateString('ar-EG') %></small></p>
+            </div>
+        </div>
+
+        <!-- الهيدر العادي للشاشة -->
+        <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm">
+            <h2>سجل العهد المنصرفة </h2>
+            <div>
+                <button onclick="window.print()" class="btn btn-dark btn-sm me-2">🖨️ طباعة الكشف الحالي</button>
+                <a href="/manager/dashboard" class="btn btn-secondary btn-sm">العودة للرئيسية</a>
+            </div>
+        </div>
+
+        <!-- نموذج البحث -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <form action="/manager/custodies" method="GET" class="row g-3 align-items-center">
+                    <div class="col-md-10">
+                        <input type="text" name="search" class="form-control" placeholder="ابحث باسم الشخص (المستلم) أو باسم الصنف..." value="<%= searchVal %>">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">بحث</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- جدول العهد -->
+        <div class="card shadow-sm">
+            <div class="card-body table-responsive">
+                <table class="table table-striped table-hover text-center align-middle">
+                    <thead>
+                        <tr>
+                            <th>رقم الصنف</th>
+                            <th>اسم الصنف</th>
+                            <th>الكمية المنصرفة</th>
+                            <th>اسم المستلم</th>
+                            <th>القسم</th>
+                            <th>التاريخ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (custodies.length > 0) { %>
+                            <% custodies.forEach(c => { %>
+                                <tr>
+                                    <td><%= c.item_number || '-' %></td>
+                                    <td><%= c.item_name %></td>
+                                    <td><span class="badge bg-primary"><%= c.quantity %></span></td>
+                                    <td><%= c.receiver %></td>
+                                    <td><%= c.department %></td>
+                                    <td><%= c.date %></td>
+                                </tr>
+                            <% }) %>
+                        <% } else { %>
+                            <tr><td colspan="6" class="text-muted">لا توجد عهد تطابق بحثك.</td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

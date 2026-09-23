@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة تحكم مسئول العهد</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; }
+        .navbar { background: #343a40; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .navbar ul { list-style: none; display: flex; margin: 0; padding: 0; align-items: center; }
+        .navbar ul li { margin-left: 40px; }
+        .navbar ul li a { color: white; text-decoration: none; font-size: 15px; }
+        .logout-btn { background: #dc3545; padding: 5px 10px; border-radius: 4px; color: white; text-decoration: none; }
+        .container { max-width: 1050px; margin: 30px auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        h3 { color: #333; border-bottom: 2px solid #28a745; padding-bottom: 8px; }
+        .form-row { display: flex; gap: 15px; margin-bottom: 15px; }
+        .form-group { flex: 1; }
+        label { display: block; margin-bottom: 5px; font-size: 14px; color: #555; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button.btn-add { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 15px; }
+        button.btn-add:hover { background: #218838; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #dee2e6; padding: 10px; text-align: center; font-size: 14px; }
+        th { background: #28a745; color: white; }
+        tr:nth-child(even) { background: #f2f2f2; }
+        .alert-error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #f5c6cb; }
+        .action-cell { display: flex; justify-content: center; gap: 15px; align-items: center; }
+        .edit-link { color: #007bff; text-decoration: none; font-weight: bold; }
+        .delete-link { color: #dc3545; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h2>نظام المخازن - مسئول العهد</h2>
+    <ul>
+        <li><a href="/custody/dashboard">الرئيسية</a></li>
+        <li><a href="/custody/warehouse">المخازن</a></li>
+        <li><a href="/account">حسابي</a></li>
+        <li><a href="/logout" class="logout-btn">تسجيل خروج</a></li>
+    </ul>
+</div>
+
+<div class="container">
+    <% if (locals.error && error) { %>
+        <div class="alert-error"><%= error %></div>
+    <% } %>
+
+    <h3><%= editCustody ? 'تعديل عهدة مصروفة' : 'تسجيل صرف عهدة جديدة' %></h3>
+    <form action="<%= editCustody ? '/custody/update/' + editCustody.id : '/custody/add' %>" method="POST">
+        <div class="form-row">
+            <div class="form-group">
+                <label>اختر الصنف من المخزن</label>
+                <select name="item_name" required>
+                    <option value="">-- اختار الصنف --</option>
+                        <% if (items && items.length > 0) { %>
+                        <% items.forEach(item => { %>
+                    <option value="<%= item.item_name %>" <%= editCustody && editCustody.item_name === item.item_name ? 'selected' : '' %>>
+                        <%= item.item_name %> (المتاح: <%= item.available_quantity %>)
+                    </option>
+                        <% }) %>
+                        <% } %>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>الكمية المصروفة</label>
+                <input type="number" name="quantity" value="<%= editCustody ? editCustody.quantity : '' %>" required min="1">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>اسم المستلم</label>
+                <input type="text" name="receiver" value="<%= editCustody ? editCustody.receiver : '' %>" required>
+            </div>
+            <div class="form-group">
+                <label>القسم</label>
+                <input type="text" name="department" value="<%= editCustody ? editCustody.department : '' %>" required>
+            </div>
+            <div class="form-group">
+                <label>تاريخ الصرف</label>
+                <input type="date" name="date" value="<%= editCustody ? editCustody.date : '' %>" required>
+            </div>
+        </div>
+        <button type="submit" class="btn-add"><%= editCustody ? 'تحديث العهدة' : 'تسجيل وحفظ العهدة' %></button>
+        <% if (editCustody) { %>
+            <a href="/custody/dashboard" style="margin-right: 10px; color: #dc3545; text-decoration: none;">إلغاء التعديل</a>
+        <% } %>
+    </form>
+
+    <h3 style="margin-top: 40px;">سجل العهد المصروفة</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>المسلسل</th>
+                <th>رقم الصنف</th>
+                <th>اسم الصنف</th>
+                <th>الكمية</th>
+                <th>اسم المستلم</th>
+                <th>القسم</th>
+                <th>تاريخ الصرف</th>
+                <th>التحكم</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (custodies && custodies.length > 0) { %>
+                <% custodies.forEach((custody, index) => { %>
+                    <tr>
+                        <td><%= index + 1 %></td>
+                        <!-- عرض رقم الصنف المرتبط بالعهدّة بناءً على ما أدخله كاتب الشطب -->
+                        <td><%= custody.item_number || '-' %></td>
+                        <td><%= custody.item_name %></td>
+                        <td><%= custody.quantity %></td>
+                        <td><%= custody.receiver %></td>
+                        <td><%= custody.department %></td>
+                        <td><%= custody.date %></td>
+                        <td>
+                            <div class="action-cell">
+                                <a href="/custody/edit/<%= custody.id %>" class="edit-link">✏️ تعديل</a>
+                                <a href="/custody/delete/<%= custody.id %>" class="delete-link" onclick="return confirm('هل أنت متأكد من الحذف؟ سيتم إرجاع الكمية للمخزن تلقائياً')">🗑️ حذف</a>
+                            </div>
+                        </td>
+                    </tr>
+                <% }) %>
+            <% } else { %>
+                <tr>
+                    <td colspan="8">لا توجد عهد مسجلة حتى الآن</td>
+                </tr>
+            <% } %>
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

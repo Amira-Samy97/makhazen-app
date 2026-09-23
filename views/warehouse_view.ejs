@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>جرد المخزن</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; }
+        .navbar { background: #343a40; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .navbar ul { list-style: none; display: flex; margin: 0; padding: 0; align-items: center; }
+        .navbar ul li { margin-left: 80px; }
+        .navbar ul li a { color: white; text-decoration: none; font-size: 15px; }
+        .logout-btn { background: #dc3545; padding: 5px 10px; border-radius: 4px; color: white; text-decoration: none; }
+        .container { max-width: 1050px; margin: 30px auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        h3 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #dee2e6; padding: 10px; text-align: center; font-size: 14px; }
+        th { background: #007bff; color: white; }
+        tr:nth-child(even) { background: #f2f2f2; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h2>نظام المخازن - إدارة المخزن</h2>
+    <ul>
+        <li><a href="/custody/dashboard">الرئيسية</a></li>
+        <li><a href="/logout" class="logout-btn">تسجيل خروج</a></li>
+    </ul>
+</div>
+
+<div class="container">
+    <h3>جرد الأصناف المتاحة في المخزن حالياً</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>المسلسل</th>
+                <th>رقم الصنف</th>
+                <th>اسم الصنف</th>
+                <th>الكمية المتبقية (المتاح)</th>
+                <th>السعر الفردي</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (items && items.length > 0) { %>
+                <% items.forEach((item, index) => { %>
+                    <tr>
+                        <td><%= index + 1 %></td>
+                        <td><%= item.item_number || item.id %></td>
+                        <td><%= item.item_name %></td>
+                        <td><%= item.available_quantity %></td>
+                        <td><%= item.price ? item.price + ' جنيه' : 'غير متوفر' %></td>
+                    </tr>
+                <% }) %>
+            <% } else { %>
+                <tr>
+                    <td colspan="5">لا توجد أصناف في المخزن حالياً</td>
+                </tr>
+            <% } %>
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

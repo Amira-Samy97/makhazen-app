@@ -46,7 +46,7 @@ async function initializeDatabase() {
         status TEXT DEFAULT 'active'
     )`);
 
-    // إدخال المستخدمين الافتراضيين لو مش موجودين
+    // إدخال المستخدمين الافتراضيين لو مش موجودين (بالبحث عن الـ username)
     const users = [
       { username: 'ابراهيم', pass: '123456', phone: '01012345678', email: 'shateb@system.com', role: 'shateb' },
       { username: 'محمد', pass: '123456', phone: '01087654321', email: 'custody@system.com', role: 'custody' },
@@ -55,8 +55,8 @@ async function initializeDatabase() {
 
     for (let u of users) {
       const existing = await db.execute({
-        sql: "SELECT * FROM users WHERE role = ?",
-        args: [u.role]
+        sql: "SELECT * FROM users WHERE username = ?",
+        args: [u.username]
       });
       
       if (existing.rows.length === 0) {

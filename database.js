@@ -1,9 +1,14 @@
-const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('./database.db');
+const { createClient } = require("@libsql/client");
 
-// إنشاء الجداول
-db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS items (
+const db = createClient({
+  url: process.env.TURSO_DATABASE_URL,
+  authToken: process.env.TURSO_AUTH_TOKEN,
+});
+
+// تهيئة الجداول وإدخال البيانات الافتراضية
+async function initializeDatabase() {
+  try {
+    await db.execute(`CREATE TABLE IF NOT EXISTS items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         item_number TEXT,
         item_name TEXT,
@@ -12,7 +17,7 @@ db.serialize(() => {
         price REAL
     )`);
 
-    db.run(`CREATE TABLE IF NOT EXISTS custodies (
+    await db.execute(`CREATE TABLE IF NOT EXISTS custodies (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         item_name TEXT,
         quantity INTEGER,
@@ -21,8 +26,7 @@ db.serialize(() => {
         date TEXT
     )`);
 
-    // --- أضيفي هذا الجدول الخاص بحركات أمين المخزن ---
-    db.run(`CREATE TABLE IF NOT EXISTS store_transactions (
+    await db.execute(`CREATE TABLE IF NOT EXISTS store_transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         item_name TEXT,
         quantity INTEGER,
@@ -30,30 +34,44 @@ db.serialize(() => {
         department TEXT,
         date TEXT
     )`);
-});
 
-db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE,
-    password TEXT,
-    phone TEXT,
-    email TEXT,
-    role TEXT,
-    status TEXT DEFAULT 'active' -- نشط افتراضياً
-)`, () => {
-    db.get(`SELECT * FROM users WHERE username = ?`, ['shateb'], (err, row) => {
-        if (!row) db.run(`INSERT INTO users (username, password, phone, email, role) VALUES (?, ?, ?, ?, ?)`, ['ابراهيم', '123456', '01012345678', 'shateb@system.com', 'shateb']);
-    });
-    db.get(`SELECT * FROM users WHERE username = ?`, ['custody'], (err, row) => {
-        if (!row) db.run(`INSERT INTO users (username, password, phone, email, role) VALUES (?, ?, ?, ?, ?)`, ['محمد', '123456', '01087654321', 'custody@system.com', 'custody']);
-    });
-    db.get(`SELECT * FROM users WHERE username = ?`, ['manager'], (err, row) => {
-        if (!row) db.run(`INSERT INTO users (username, password, phone, email, role) VALUES (?, ?, ?, ?, ?)`, ['ياسر عبدالصادق', '123456', '01000407054', 'manager@system.com', 'manager']);
-    });
+    await db.execute(`CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
+        password TEXT,
+        phone TEXT,
+        email TEXT,
+        role TEXT,
+        status TEXT DEFAULT 'active'
+    )`);
 
-    // db.get(`SELECT * FROM users WHERE username = ?`, ['storekeeper'], (err, row) => {
-    //     if (!row) db.run(`INSERT INTO users (username, password, phone, email, role) VALUES (?, ?, ?, ?, ?)`, ['storekeeper', '123456', '01099887766', 'storekeeper@system.com', 'storekeeper']);
-    // });
-});
+    // إدخال المستخدمين الافتراضيين لو مش موجودين
+    const users = [
+      { username: 'ابراهيم', pass: '123456', phone: '01012345678', email: 'shateb@system.com', role: 'shateb' },
+      { username: 'محمد', pass: '123456', phone: '01087654321', email: 'custody@system.com', role: 'custody' },
+      { username: 'ياسر عبدالصادق', pass: '123456', phone: '01000407054', email: 'manager@system.com', role: 'manager' }
+    ];
+
+    for (let u of users) {
+      const existing = await db.execute({
+        sql: "SELECT * FROM users WHERE role = ?",
+        args: [u.role]
+      });
+      
+      if (existing.rows.length === 0) {
+        await db.execute({
+          sql: "INSERT INTO users (username, password, phone, email, role) VALUES (?, ?, ?, ?, ?)",
+          args: [u.username, u.pass, u.phone, u.email, u.role]
+        });
+      }
+    }
+
+    console.log("Database initialized successfully with Turso!");
+  } catch (err) {
+    console.error("Error initializing database:", err);
+  }
+}
+
+initializeDatabase();
 
 module.exports = db;

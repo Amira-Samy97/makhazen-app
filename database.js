@@ -1,8 +1,9 @@
 const { createClient } = require("@libsql/client");
 
+// لو شغالين على السحابة يقرأ من البيئة، ولو محلي ممكن نحط الرابط للتجربة أو نخليه sqlite عادي
 const db = createClient({
-  url: process.env.TURSO_DATABASE_URL,
-  authToken: process.env.TURSO_AUTH_TOKEN,
+  url: process.env.TURSO_DATABASE_URL || "libsql://makhazen-amira-samy97.aws-eu-west-1.turso.io",
+  authToken: process.env.TURSO_AUTH_TOKEN || "هنا_الـ_token_بتاعك_لو_حابة_تجربي_محلياً",
 });
 
 // تهيئة الجداول وإدخال البيانات الافتراضية

@@ -113,7 +113,7 @@ exports.updateAccount = async (req, res) => {
 
 exports.getShatebDashboard = async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
-    const selectedStore = req.query.store || 'مستهلك'; // المخزن الافتراضي
+    const selectedStore = req.query.store || 'مستهلك'; 
     
     try {
         const result = await db.execute({
@@ -127,31 +127,33 @@ exports.getShatebDashboard = async (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.render('shateb_dashboard', { 
-            items: [], 
-            editItem: null, 
-            selectedStore: selectedStore 
-        });
+        res.render('shateb_dashboard', { items: [], editItem: null, selectedStore: selectedStore });
     }
 };
 
 exports.addItem = async (req, res) => {
     const { item_number, item_name, quantity, price, store_type } = req.body;
-    const qty = parseInt(quantity);
-    const store = store_type || 'مستهلك';
+    const qty = parseInt(quantity) || 0;
+    const itemPrice = parseFloat(price) || 0;
+    
+    // ضمان أخذ قيمة المخزن بوضوح من الـ body أو من الـ query أو افتراضياً 'مستهلك'
+    const store = (store_type && store_type.trim() !== '') 
+        ? store_type.trim() 
+        : (req.query.store || 'مستهلك');
 
     try {
         await db.execute({
             sql: `INSERT INTO items (item_number, item_name, quantity, available_quantity, price, store_type) VALUES (?, ?, ?, ?, ?, ?)`,
-            args: [item_number, item_name, qty, qty, price, store]
+            args: [item_number, item_name, qty, qty, itemPrice, store]
         });
+        
+        console.log(`تم إضافة الصنف (${item_name}) بنجاح إلى مخزن: ${store}`);
         return res.redirect(`/shateb/dashboard?store=${encodeURIComponent(store)}`);
     } catch (err) {
-        console.error(err);
+        console.error("خطأ أثناء إضافة الصنف:", err);
         return res.redirect(`/shateb/dashboard?store=${encodeURIComponent(store)}`);
     }
 };
-
 exports.deleteItem = async (req, res) => {
     const store = req.query.store || 'مستهلك';
     try {

@@ -3,12 +3,12 @@ const { createClient } = require("@libsql/client");
 // لو شغالين على السحابة يقرأ من البيئة، ولو محلي ممكن نحط الرابط للتجربة أو نخليه sqlite عادي
 const db = createClient({
   url: process.env.TURSO_DATABASE_URL || "libsql://makhazen-amira-samy97.aws-eu-west-1.turso.io",
-  authToken: process.env.TURSO_AUTH_TOKEN || "هنا_الـ_token_بتاعك_لو_حابة_تجربي_محلياً",
+  authToken: process.env.TURSO_AUTH_TOKEN || "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3OTIzMzUyMTEsImlkIjoiMDFhMGQyY2ItYTgwMS03YjNhLWJlYWMtODQ0YzUwZWQ2YjVjIiwia2lkIjoiVDVya1VRYm5SaXJpbXBwZ3d4NEY1SUtUbVJ2TWp4djY0TFN3Q25DQnVMVSIsInJpZCI6Ijc5ODAxOTAzLTk1ZTAtNDcwZi1hNjE1LTg3ZjJkN2VlMTg5NCJ9.Aukhn_4gU2Yt5d9IXNy4TYCaJDxQLC7TFeglPXt5bPbVc9lzURN0eMIfQ2xjXqqW8ayjm93qIoySOVtgRuhPDg",
 });
 
 // تهيئة الجداول وإدخال البيانات الافتراضية
 async function initializeDatabase() {
-  try {
+  try {    
     // جدول الأصناف (مع إضافة عمود نوع المخزن store_type)
     await db.execute(`CREATE TABLE IF NOT EXISTS items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,6 +20,10 @@ async function initializeDatabase() {
         store_type TEXT DEFAULT 'مستهلك'
     )`);
 
+    try {
+      await db.execute(`ALTER TABLE items ADD COLUMN store_type TEXT DEFAULT 'مستهلك'`);
+    } catch (e) {}
+
     await db.execute(`CREATE TABLE IF NOT EXISTS custodies (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         item_name TEXT,
@@ -29,6 +33,10 @@ async function initializeDatabase() {
         date TEXT,
         store_type TEXT DEFAULT 'مستهلك'
     )`);
+
+    try {
+      await db.execute(`ALTER TABLE custodies ADD COLUMN store_type TEXT DEFAULT 'مستهلك'`);
+    } catch (e) {}
 
     await db.execute(`CREATE TABLE IF NOT EXISTS store_transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

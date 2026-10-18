@@ -9,13 +9,15 @@ const db = createClient({
 // تهيئة الجداول وإدخال البيانات الافتراضية
 async function initializeDatabase() {
   try {
+    // جدول الأصناف (مع إضافة عمود نوع المخزن store_type)
     await db.execute(`CREATE TABLE IF NOT EXISTS items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         item_number TEXT,
         item_name TEXT,
         quantity INTEGER,
         available_quantity INTEGER,
-        price REAL
+        price REAL,
+        store_type TEXT DEFAULT 'مستهلك'
     )`);
 
     await db.execute(`CREATE TABLE IF NOT EXISTS custodies (
@@ -24,7 +26,8 @@ async function initializeDatabase() {
         quantity INTEGER,
         receiver TEXT,
         department TEXT,
-        date TEXT
+        date TEXT,
+        store_type TEXT DEFAULT 'مستهلك'
     )`);
 
     await db.execute(`CREATE TABLE IF NOT EXISTS store_transactions (
@@ -67,7 +70,7 @@ async function initializeDatabase() {
       }
     }
 
-    console.log("Database initialized successfully with Turso!");
+    console.log("Database initialized successfully locally!");
   } catch (err) {
     console.error("Error initializing database:", err);
   }

@@ -12,6 +12,14 @@
         .logout-btn { background: #dc3545; padding: 5px 10px; border-radius: 4px; color: white; text-decoration: none; }
         .container { max-width: 1050px; margin: 30px auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         h3 { color: #333; border-bottom: 2px solid #28a745; padding-bottom: 8px; }
+        
+        /* تنسيق أزرار اختيار المخزن */
+        .store-nav { display: flex; gap: 15px; margin-bottom: 25px; justify-content: center; }
+        .store-btn { text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; font-size: 15px; border: 2px solid #28a745; transition: 0.2s; }
+        .store-btn.active { background-color: #28a745; color: white; }
+        .store-btn.inactive { background-color: #f8f9fa; color: #28a745; }
+        .store-btn.inactive:hover { background-color: #e2e6ea; }
+
         .form-row { display: flex; gap: 15px; margin-bottom: 15px; }
         .form-group { flex: 1; }
         label { display: block; margin-bottom: 5px; font-size: 14px; color: #555; }
@@ -33,32 +41,50 @@
 <div class="navbar">
     <h2>نظام المخازن - مسئول العهد</h2>
     <ul>
-        <li><a href="/custody/dashboard">الرئيسية</a></li>
-        <li><a href="/custody/warehouse">المخازن</a></li>
+        <li><a href="/custody/dashboard?store=<%= selectedStore %>">الرئيسية</a></li>
+        <li><a href="/custody/warehouse?store=<%= selectedStore %>">المخازن</a></li>
         <li><a href="/account">حسابي</a></li>
         <li><a href="/logout" class="logout-btn">تسجيل خروج</a></li>
     </ul>
 </div>
 
 <div class="container">
+
+    <!-- أزرار اختيار المخزن لمسؤول العهدة -->
+    <div class="store-nav">
+        <a href="/custody/dashboard?store=مستهلك" class="store-btn <%= selectedStore === 'مستهلك' ? 'active' : 'inactive' %>">
+             مخزن المستهلك
+        </a>
+        <a href="/custody/dashboard?store=مستديم" class="store-btn <%= selectedStore === 'مستديم' ? 'active' : 'inactive' %>">
+             مخزن المستديم
+        </a>
+        <a href="/custody/dashboard?store=كيماويات" class="store-btn <%= selectedStore === 'كيماويات' ? 'active' : 'inactive' %>">
+             مخزن الكيماويات
+        </a>
+    </div>
+
     <% if (locals.error && error) { %>
         <div class="alert-error"><%= error %></div>
     <% } %>
 
-    <h3><%= editCustody ? 'تعديل عهدة مصروفة' : 'تسجيل صرف عهدة جديدة' %></h3>
+    <h3><%= editCustody ? 'تعديل عهدة مصروفة في (' + selectedStore + ')' : 'تسجيل صرف عهدة جديدة من (' + selectedStore + ')' %></h3>
+    
     <form action="<%= editCustody ? '/custody/update/' + editCustody.id : '/custody/add' %>" method="POST">
+        <!-- إرسال نوع المخزن المختار بشكل خفي -->
+        <input type="hidden" name="store_type" value="<%= selectedStore %>">
+
         <div class="form-row">
             <div class="form-group">
-                <label>اختر الصنف من المخزن</label>
+                <label>اختر الصنف من المخزن (<%= selectedStore %>)</label>
                 <select name="item_name" required>
                     <option value="">-- اختار الصنف --</option>
-                        <% if (items && items.length > 0) { %>
+                    <% if (items && items.length > 0) { %>
                         <% items.forEach(item => { %>
-                    <option value="<%= item.item_name %>" <%= editCustody && editCustody.item_name === item.item_name ? 'selected' : '' %>>
-                        <%= item.item_name %> (المتاح: <%= item.available_quantity %>)
-                    </option>
+                            <option value="<%= item.item_name %>" <%= editCustody && editCustody.item_name === item.item_name ? 'selected' : '' %>>
+                                <%= item.item_name %> (المتاح: <%= item.available_quantity %>)
+                            </option>
                         <% }) %>
-                        <% } %>
+                    <% } %>
                 </select>
             </div>
             <div class="form-group">
@@ -82,11 +108,11 @@
         </div>
         <button type="submit" class="btn-add"><%= editCustody ? 'تحديث العهدة' : 'تسجيل وحفظ العهدة' %></button>
         <% if (editCustody) { %>
-            <a href="/custody/dashboard" style="margin-right: 10px; color: #dc3545; text-decoration: none;">إلغاء التعديل</a>
+            <a href="/custody/dashboard?store=<%= selectedStore %>" style="margin-right: 10px; color: #dc3545; text-decoration: none;">إلغاء التعديل</a>
         <% } %>
     </form>
 
-    <h3 style="margin-top: 40px;">سجل العهد المصروفة</h3>
+    <h3 style="margin-top: 40px;">سجل العهد المصروفة لـ (<%= selectedStore %>)</h3>
     <table>
         <thead>
             <tr>
@@ -105,7 +131,6 @@
                 <% custodies.forEach((custody, index) => { %>
                     <tr>
                         <td><%= index + 1 %></td>
-                        <!-- عرض رقم الصنف المرتبط بالعهدّة بناءً على ما أدخله كاتب الشطب -->
                         <td><%= custody.item_number || '-' %></td>
                         <td><%= custody.item_name %></td>
                         <td><%= custody.quantity %></td>
@@ -114,15 +139,15 @@
                         <td><%= custody.date %></td>
                         <td>
                             <div class="action-cell">
-                                <a href="/custody/edit/<%= custody.id %>" class="edit-link">✏️ تعديل</a>
-                                <a href="/custody/delete/<%= custody.id %>" class="delete-link" onclick="return confirm('هل أنت متأكد من الحذف؟ سيتم إرجاع الكمية للمخزن تلقائياً')">🗑️ حذف</a>
+                                <a href="/custody/edit/<%= custody.id %>?store=<%= selectedStore %>" class="edit-link">✏️ تعديل</a>
+                                <a href="/custody/delete/<%= custody.id %>?store=<%= selectedStore %>" class="delete-link" onclick="return confirm('هل أنت متأكد من الحذف؟ سيتم إرجاع الكمية للمخزن تلقائياً')">🗑️ حذف</a>
                             </div>
                         </td>
                     </tr>
                 <% }) %>
             <% } else { %>
                 <tr>
-                    <td colspan="8">لا توجد عهد مسجلة حتى الآن</td>
+                    <td colspan="8">لا توجد عهد مسجلة في <%= selectedStore %> حتى الآن</td>
                 </tr>
             <% } %>
         </tbody>

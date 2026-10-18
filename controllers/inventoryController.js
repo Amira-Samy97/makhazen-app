@@ -109,87 +109,127 @@ exports.updateAccount = async (req, res) => {
 };
 
 // --- وظائف كاتب الشطب ---
+// --- وظائف كاتب الشطب (مع دعم تقسيم المخازن الثلاثة) ---
+
 exports.getShatebDashboard = async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
+    const selectedStore = req.query.store || 'مستهلك'; // المخزن الافتراضي
+    
     try {
-        const result = await db.execute(`SELECT * FROM items`);
-        res.render('shateb_dashboard', { items: result.rows, editItem: null });
+        const result = await db.execute({
+            sql: `SELECT * FROM items WHERE store_type = ?`,
+            args: [selectedStore]
+        });
+        res.render('shateb_dashboard', { 
+            items: result.rows || [], 
+            editItem: null, 
+            selectedStore: selectedStore 
+        });
     } catch (err) {
         console.error(err);
-        res.render('shateb_dashboard', { items: [], editItem: null });
+        res.render('shateb_dashboard', { 
+            items: [], 
+            editItem: null, 
+            selectedStore: selectedStore 
+        });
     }
 };
 
 exports.addItem = async (req, res) => {
-    const { item_number, item_name, quantity, price } = req.body;
+    const { item_number, item_name, quantity, price, store_type } = req.body;
     const qty = parseInt(quantity);
+    const store = store_type || 'مستهلك';
 
     try {
         await db.execute({
-            sql: `INSERT INTO items (item_number, item_name, quantity, available_quantity, price) VALUES (?, ?, ?, ?, ?)`,
-            args: [item_number, item_name, qty, qty, price]
+            sql: `INSERT INTO items (item_number, item_name, quantity, available_quantity, price, store_type) VALUES (?, ?, ?, ?, ?, ?)`,
+            args: [item_number, item_name, qty, qty, price, store]
         });
-        return res.redirect('/shateb/dashboard');
+        return res.redirect(`/shateb/dashboard?store=${encodeURIComponent(store)}`);
     } catch (err) {
         console.error(err);
-        return res.redirect('/shateb/dashboard');
+        return res.redirect(`/shateb/dashboard?store=${encodeURIComponent(store)}`);
     }
 };
 
 exports.deleteItem = async (req, res) => {
+    const store = req.query.store || 'مستهلك';
     try {
         await db.execute({
             sql: `DELETE FROM items WHERE id = ?`,
             args: [req.params.id]
         });
-        res.redirect('/shateb/dashboard');
+        res.redirect(`/shateb/dashboard?store=${encodeURIComponent(store)}`);
     } catch (err) {
         console.error(err);
-        res.redirect('/shateb/dashboard');
+        res.redirect(`/shateb/dashboard?store=${encodeURIComponent(store)}`);
     }
 };
 
 exports.getEditItem = async (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+    const store = req.query.store || 'مستهلك';
+
     try {
-        const itemsResult = await db.execute(`SELECT * FROM items`);
+        const itemsResult = await db.execute({
+            sql: `SELECT * FROM items WHERE store_type = ?`,
+            args: [store]
+        });
         const editResult = await db.execute({
             sql: `SELECT * FROM items WHERE id = ?`,
             args: [req.params.id]
         });
-        res.render('shateb_dashboard', { items: itemsResult.rows, editItem: editResult.rows[0] });
+        res.render('shateb_dashboard', { 
+            items: itemsResult.rows || [], 
+            editItem: editResult.rows[0], 
+            selectedStore: store 
+        });
     } catch (err) {
         console.error(err);
-        res.redirect('/shateb/dashboard');
+        res.redirect(`/shateb/dashboard?store=${encodeURIComponent(store)}`);
     }
 };
 
 exports.updateItem = async (req, res) => {
-    const { item_number, item_name, quantity, price } = req.body;
+    const { item_number, item_name, quantity, price, store_type } = req.body;
+    const store = store_type || 'مستهلك';
+
     try {
         await db.execute({
             sql: `UPDATE items SET item_number = ?, item_name = ?, quantity = ?, price = ? WHERE id = ?`,
             args: [item_number, item_name, quantity, price, req.params.id]
         });
-        res.redirect('/shateb/dashboard');
+        res.redirect(`/shateb/dashboard?store=${encodeURIComponent(store)}`);
     } catch (err) {
         console.error(err);
-        res.redirect('/shateb/dashboard');
+        res.redirect(`/shateb/dashboard?store=${encodeURIComponent(store)}`);
     }
 };
 
 // --- لوحة تحكم مسئول العهد وعرض السجل ---
+// --- لوحة تحكم مسئول العهد وعرض السجل (مع دعم تقسيم المخازن) ---
 exports.getCustodyDashboard = async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
+    const selectedStore = req.query.store || 'مستهلك';
     
     try {
-        const custodyResult = await db.execute(`SELECT custodies.*, items.item_number FROM custodies LEFT JOIN items ON custodies.item_name = items.item_name`);
-        const itemResult = await db.execute(`SELECT * FROM items`);
+        // جلب العهد الخاصة بالمخزن المختار أو جلب الكل حسب تفضيلك، والأفضل جلب أصناف المخزن المختار فقط للقائمة المنسدلة
+        const custodyResult = await db.execute({
+            sql: `SELECT custodies.*, items.item_number FROM custodies LEFT JOIN items ON custodies.item_name = items.item_name WHERE items.store_type = ?`,
+            args: [selectedStore]
+        });
+        
+        const itemResult = await db.execute({
+            sql: `SELECT * FROM items WHERE store_type = ? AND available_quantity > 0`,
+            args: [selectedStore]
+        });
 
         res.render('custody_dashboard', { 
             custodies: custodyResult.rows || [], 
             items: itemResult.rows || [], 
             editCustody: null,
             user: req.session.user,
+            selectedStore: selectedStore,
             error: null 
         });
     } catch (err) {
@@ -199,25 +239,33 @@ exports.getCustodyDashboard = async (req, res) => {
 };
 
 exports.addCustody = async (req, res) => {
-    const { item_name, quantity, receiver, department, date } = req.body;
+    const { item_name, quantity, receiver, department, date, store_type } = req.body;
     const reqQty = parseInt(quantity);
+    const store = store_type || 'مستهلك';
 
     try {
         const itemResult = await db.execute({
-            sql: `SELECT * FROM items WHERE item_name = ?`,
-            args: [item_name]
+            sql: `SELECT * FROM items WHERE item_name = ? AND store_type = ?`,
+            args: [item_name, store]
         });
         const item = itemResult.rows[0];
 
         if (!item || item.available_quantity < reqQty) {
-            const custodyResult = await db.execute(`SELECT custodies.*, items.item_number FROM custodies LEFT JOIN items ON custodies.item_name = items.item_name`);
-            const itemRowsResult = await db.execute(`SELECT * FROM items`);
+            const custodyResult = await db.execute({
+                sql: `SELECT custodies.*, items.item_number FROM custodies LEFT JOIN items ON custodies.item_name = items.item_name WHERE items.store_type = ?`,
+                args: [store]
+            });
+            const itemRowsResult = await db.execute({
+                sql: `SELECT * FROM items WHERE store_type = ? AND available_quantity > 0`,
+                args: [store]
+            });
 
             return res.render('custody_dashboard', { 
                 custodies: custodyResult.rows || [], 
                 items: itemRowsResult.rows || [], 
                 editCustody: null,
                 user: req.session.user,
+                selectedStore: store,
                 error: `عذراً! الكمية المطلوبة غير متاحة بالمخزن. المتاح حالياً: ${item ? item.available_quantity : 0}`
             });
         }
@@ -233,19 +281,26 @@ exports.addCustody = async (req, res) => {
             args: [item_name, reqQty, receiver, department, date]
         });
 
-        return res.redirect('/custody/dashboard');
+        return res.redirect(`/custody/dashboard?store=${encodeURIComponent(store)}`);
     } catch (err) {
         console.error(err);
-        return res.redirect('/custody/dashboard');
+        return res.redirect(`/custody/dashboard?store=${encodeURIComponent(store)}`);
     }
 };
 
 exports.getEditCustody = async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
+    const store = req.query.store || 'مستهلك';
     
     try {
-        const custodyResult = await db.execute(`SELECT custodies.*, items.item_number FROM custodies LEFT JOIN items ON custodies.item_name = items.item_name`);
-        const itemResult = await db.execute(`SELECT * FROM items`);
+        const custodyResult = await db.execute({
+            sql: `SELECT custodies.*, items.item_number FROM custodies LEFT JOIN items ON custodies.item_name = items.item_name WHERE items.store_type = ?`,
+            args: [store]
+        });
+        const itemResult = await db.execute({
+            sql: `SELECT * FROM items WHERE store_type = ?`,
+            args: [store]
+        });
         const editResult = await db.execute({
             sql: `SELECT * FROM custodies WHERE id = ?`,
             args: [req.params.id]
@@ -256,18 +311,20 @@ exports.getEditCustody = async (req, res) => {
             items: itemResult.rows || [], 
             editCustody: editResult.rows[0],
             user: req.session.user,
+            selectedStore: store,
             error: null 
         });
     } catch (err) {
         console.error(err);
-        res.redirect('/custody/dashboard');
+        res.redirect(`/custody/dashboard?store=${encodeURIComponent(store)}`);
     }
 };
 
 exports.updateCustody = async (req, res) => {
-    const { item_name, quantity, receiver, department, date } = req.body;
+    const { item_name, quantity, receiver, department, date, store_type } = req.body;
     const newReqQty = parseInt(quantity);
     const custodyId = req.params.id;
+    const store = store_type || 'مستهلك';
 
     try {
         const oldCustodyResult = await db.execute({
@@ -275,23 +332,23 @@ exports.updateCustody = async (req, res) => {
             args: [custodyId]
         });
         const oldCustody = oldCustodyResult.rows[0];
-        if (!oldCustody) return res.redirect('/custody/dashboard');
+        if (!oldCustody) return res.redirect(`/custody/dashboard?store=${encodeURIComponent(store)}`);
 
         const oldItemResult = await db.execute({
             sql: `SELECT * FROM items WHERE item_name = ?`,
             args: [oldCustody.item_name]
         });
         const oldItem = oldItemResult.rows[0];
-        if (!oldItem) return res.redirect('/custody/dashboard');
+        if (!oldItem) return res.redirect(`/custody/dashboard?store=${encodeURIComponent(store)}`);
 
         const restoredAvailable = oldItem.available_quantity + oldCustody.quantity;
 
         const targetItemResult = await db.execute({
-            sql: `SELECT * FROM items WHERE item_name = ?`,
-            args: [item_name]
+            sql: `SELECT * FROM items WHERE item_name = ? AND store_type = ?`,
+            args: [item_name, store]
         });
         const targetItem = targetItemResult.rows[0];
-        if (!targetItem) return res.redirect('/custody/dashboard');
+        if (!targetItem) return res.redirect(`/custody/dashboard?store=${encodeURIComponent(store)}`);
 
         let availableCheck = targetItem.available_quantity;
         if (oldItem.id === targetItem.id) {
@@ -299,13 +356,20 @@ exports.updateCustody = async (req, res) => {
         }
 
         if (availableCheck < newReqQty) {
-            const custodyResult = await db.execute(`SELECT custodies.*, items.item_number FROM custodies LEFT JOIN items ON custodies.item_name = items.item_name`);
-            const itemResult = await db.execute(`SELECT * FROM items`);
+            const custodyResult = await db.execute({
+                sql: `SELECT custodies.*, items.item_number FROM custodies LEFT JOIN items ON custodies.item_name = items.item_name WHERE items.store_type = ?`,
+                args: [store]
+            });
+            const itemResult = await db.execute({
+                sql: `SELECT * FROM items WHERE store_type = ?`,
+                args: [store]
+            });
             return res.render('custody_dashboard', { 
                 custodies: custodyResult.rows || [], 
                 items: itemResult.rows || [], 
                 editCustody: oldCustody,
                 user: req.session.user,
+                selectedStore: store,
                 error: `فشل التعديل: الكمية المطلوبة أكبر من المتاح (${availableCheck})`
             });
         }
@@ -316,8 +380,8 @@ exports.updateCustody = async (req, res) => {
         });
 
         const finalTargetResult = await db.execute({
-            sql: `SELECT * FROM items WHERE item_name = ?`,
-            args: [item_name]
+            sql: `SELECT * FROM items WHERE item_name = ? AND store_type = ?`,
+            args: [item_name, store]
         });
         const finalTarget = finalTargetResult.rows[0];
         const finalAvailable = finalTarget.available_quantity - newReqQty;
@@ -332,14 +396,15 @@ exports.updateCustody = async (req, res) => {
             args: [item_name, newReqQty, receiver, department, date, custodyId]
         });
 
-        return res.redirect('/custody/dashboard');
+        return res.redirect(`/custody/dashboard?store=${encodeURIComponent(store)}`);
     } catch (err) {
         console.error(err);
-        return res.redirect('/custody/dashboard');
+        return res.redirect(`/custody/dashboard?store=${encodeURIComponent(store)}`);
     }
 };
 
 exports.deleteCustody = async (req, res) => {
+    const store = req.query.store || 'مستهلك';
     try {
         const custodyResult = await db.execute({
             sql: `SELECT * FROM custodies WHERE id = ?`,
@@ -367,35 +432,59 @@ exports.deleteCustody = async (req, res) => {
             sql: `DELETE FROM custodies WHERE id = ?`,
             args: [req.params.id]
         });
-        res.redirect('/custody/dashboard');
+        res.redirect(`/custody/dashboard?store=${encodeURIComponent(store)}`);
     } catch (err) {
         console.error(err);
-        res.redirect('/custody/dashboard');
+        res.redirect(`/custody/dashboard?store=${encodeURIComponent(store)}`);
     }
 };
 
 exports.getWarehouseView = async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
+    const store = req.query.store || 'مستهلك';
     try {
-        const result = await db.execute(`SELECT * FROM items`);
-        res.render('warehouse_view', { items: result.rows, user: req.session.user });
+        const result = await db.execute({
+            sql: `SELECT * FROM items WHERE store_type = ?`,
+            args: [store]
+        });
+        res.render('warehouse_view', { items: result.rows, user: req.session.user, selectedStore: store });
     } catch (err) {
         console.error(err);
         res.redirect('/login');
     }
 };
-
 // --- لوحة التحكم الرئيسية (الإحصائيات والروابط) ---
+// --- لوحة التحكم الرئيسية للمدير (الإحصائيات والروابط) ---
 exports.getManagerDashboard = async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'manager') {
         return res.redirect('/login');
     }
     
+    const selectedStore = req.query.store || 'الكل'; // دعم تصفية الإحصائيات بالمخزن أو عرض الكل
+
     try {
-        const itemCountRes = await db.execute(`SELECT COUNT(*) as count FROM items`);
-        const custodyCountRes = await db.execute(`SELECT COUNT(*) as count FROM custodies`);
+        let itemCountRes, custodyCountRes, itemsRes;
+
+        if (selectedStore === 'الكل') {
+            itemCountRes = await db.execute(`SELECT COUNT(*) as count FROM items`);
+            custodyCountRes = await db.execute(`SELECT COUNT(*) as count FROM custodies`);
+            itemsRes = await db.execute(`SELECT available_quantity, price FROM items`);
+        } else {
+            itemCountRes = await db.execute({
+                sql: `SELECT COUNT(*) as count FROM items WHERE store_type = ?`,
+                args: [selectedStore]
+            });
+            custodyCountRes = await db.execute({
+                sql: `SELECT COUNT(*) as count FROM custodies LEFT JOIN items ON custodies.item_name = items.item_name WHERE items.store_type = ?`,
+                args: [selectedStore]
+            });
+            itemsRes = await db.execute({
+                sql: `SELECT available_quantity, price FROM items WHERE store_type = ?`,
+                args: [selectedStore]
+            });
+        }
+
         const userCountRes = await db.execute(`SELECT COUNT(*) as count FROM users`);
-        const itemsRes = await db.execute(`SELECT available_quantity, price FROM items`);
 
         let totalInventoryValue = 0;
         const items = itemsRes.rows;
@@ -412,6 +501,7 @@ exports.getManagerDashboard = async (req, res) => {
             custodyCount: custodyCountRes.rows[0] ? custodyCountRes.rows[0].count : 0, 
             userCount: userCountRes.rows[0] ? userCountRes.rows[0].count : 0,
             totalInventoryValue: totalInventoryValue,
+            selectedStore: selectedStore,
             user: req.session.user 
         });
     } catch (err) {
@@ -420,16 +510,28 @@ exports.getManagerDashboard = async (req, res) => {
     }
 };
 
+// --- صفحة عرض جميع أصناف المخزن للمدير (مع دعم التصفية) ---
 exports.getManagerItems = async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'manager') {
         return res.redirect('/login');
     }
+
+    const selectedStore = req.query.store || 'مستهلك';
     
     try {
-        const result = await db.execute(`SELECT * FROM items`);
+        let query = `SELECT * FROM items WHERE store_type = ?`;
+        let args = [selectedStore];
+
+        if (selectedStore === 'الكل') {
+            query = `SELECT * FROM items`;
+            args = [];
+        }
+
+        const result = await db.execute({ sql: query, args: args });
         res.render('manager_items', { 
             items: result.rows || [], 
-            user: req.session.user 
+            user: req.session.user,
+            selectedStore: selectedStore 
         });
     } catch (err) {
         console.error(err);
@@ -437,35 +539,47 @@ exports.getManagerItems = async (req, res) => {
     }
 };
 
+// --- صفحة عرض سجل العهد للمدير (مع دعم البحث والتصفية بحسب المخزن) ---
 exports.getManagerCustodies = async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'manager') {
         return res.redirect('/login');
     }
     
+    const selectedStore = req.query.store || 'الكل';
     const searchQuery = req.query.search ? `%${req.query.search}%` : '%';
-    const query = `
-        SELECT custodies.*, items.item_number 
-        FROM custodies 
-        LEFT JOIN items ON custodies.item_name = items.item_name 
-        WHERE custodies.receiver LIKE ? OR custodies.item_name LIKE ?
-    `;
-
+    
     try {
-        const result = await db.execute({
-            sql: query,
-            args: [searchQuery, searchQuery]
-        });
+        // استعلام يجلب المخزن الحقيقي المرتبط بالصنف من جدول items بناءً على تطابق اسم الصنف
+        let query = `
+            SELECT 
+                custodies.*, 
+                COALESCE(items.item_number, '-') AS item_number, 
+                COALESCE(items.store_type, 'مستهلك') AS real_store_type 
+            FROM custodies 
+            LEFT JOIN items ON TRIM(custodies.item_name) = TRIM(items.item_name) 
+            WHERE (custodies.receiver LIKE ? OR custodies.item_name LIKE ?)
+        `;
+        let args = [searchQuery, searchQuery];
+
+        if (selectedStore !== 'الكل') {
+            query += ` AND items.store_type = ?`;
+            args.push(selectedStore);
+        }
+
+        const result = await db.execute({ sql: query, args: args });
+        
         res.render('manager_custodies', { 
             custodies: result.rows || [], 
             user: req.session.user,
-            searchVal: req.query.search || '' 
+            searchVal: req.query.search || '',
+            selectedStore: selectedStore 
         });
     } catch (err) {
-        console.error(err);
+        console.error("خطأ في جلب العهد للمدير:", err);
         res.redirect('/manager/dashboard');
     }
 };
-
+// --- عرض قائمة مستخدمي النظام للمدير ---
 exports.getManagerUsers = async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'manager') {
         return res.redirect('/login');
@@ -480,11 +594,12 @@ exports.getManagerUsers = async (req, res) => {
             query: req.query 
         });
     } catch (err) {
-        console.error(err);
+        console.error("خطأ في جلب المستخدمين:", err);
         res.redirect('/login');
     }
 };
 
+// --- إضافة مستخدم جديد للنظام ---
 exports.addUser = async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'manager') {
         return res.redirect('/login');
@@ -497,18 +612,25 @@ exports.addUser = async (req, res) => {
             sql: `INSERT INTO users (username, password, phone, email, role) VALUES (?, ?, ?, ?, ?)`,
             args: [username, password, phone, email, role]
         });
-        res.redirect('/manager/users');
+        res.redirect('/manager/users?success=added');
     } catch (err) {
-        const result = await db.execute(`SELECT * FROM users`);
-        return res.render('manager_users', { 
-            users: result.rows || [], 
-            user: req.session.user,
-            error: 'فشل الإضافة: اسم المستخدم قد يكون مستخدماً من قبل.',
-            query: {}
-        });
+        console.error("خطأ في إضافة المستخدم:", err);
+        try {
+            const result = await db.execute(`SELECT * FROM users`);
+            return res.render('manager_users', { 
+                users: result.rows || [], 
+                user: req.session.user,
+                error: 'فشل الإضافة: اسم المستخدم قد يكون مستخدماً من قبل أو البيانات غير مكتملة.',
+                query: req.query || {}
+            });
+        } catch (fetchErr) {
+            console.error("خطأ أثناء إعادة التحميل:", fetchErr);
+            res.redirect('/manager/users?error=db_error');
+        }
     }
 };
 
+// --- تعديل بيانات مستخدم حالي ---
 exports.updateUser = async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'manager') {
         return res.redirect('/login');
@@ -524,19 +646,22 @@ exports.updateUser = async (req, res) => {
         });
         res.redirect('/manager/users?success=updated');
     } catch (err) {
-        console.log(err);
+        console.error("خطأ في تعديل المستخدم:", err);
         res.redirect('/manager/users?error=db_error');
     }
 };
 
+// --- حذف مستخدم من النظام ---
 exports.deleteUser = async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'manager') {
         return res.redirect('/login');
     }
 
     const userId = req.params.id;
+
+    // حماية: منع المدير من حذف حسابه المسجل به حالياً
     if (parseInt(userId) === req.session.user.id) {
-        return res.redirect('/manager/users');
+        return res.redirect('/manager/users?error=self_delete');
     }
 
     try {
@@ -546,7 +671,7 @@ exports.deleteUser = async (req, res) => {
         });
         res.redirect('/manager/users?success=deleted');
     } catch (err) {
-        console.log(err);
+        console.error("خطأ في حذف المستخدم:", err);
         res.redirect('/manager/users?error=db_error');
     }
 };

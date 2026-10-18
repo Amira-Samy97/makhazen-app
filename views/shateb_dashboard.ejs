@@ -12,6 +12,14 @@
         .logout-btn { background: #dc3545; padding: 5px 10px; border-radius: 4px; color: white; text-decoration: none; }
         .container { max-width: 1000px; margin: 30px auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         h3 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 8px; }
+        
+        /* تنسيق أزرار اختيار المخزن */
+        .store-nav { display: flex; gap: 15px; margin-bottom: 25px; justify-content: center; }
+        .store-btn { text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; font-size: 15px; border: 2px solid #007bff; transition: 0.2s; }
+        .store-btn.active { background-color: #007bff; color: white; }
+        .store-btn.inactive { background-color: #f8f9fa; color: #007bff; }
+        .store-btn.inactive:hover { background-color: #e2e6ea; }
+
         .form-row { display: flex; gap: 15px; margin-bottom: 15px; }
         .form-group { flex: 1; }
         label { display: block; margin-bottom: 5px; font-size: 14px; color: #555; }
@@ -33,15 +41,33 @@
 <div class="navbar">
     <h2>نظام المخازن - كاتب الشطب</h2>
     <ul>
-        <li><a href="/shateb/dashboard">الرئيسية</a></li>
+        <li><a href="/shateb/dashboard?store=<%= selectedStore %>">الرئيسية</a></li>
         <li><a href="/account">حسابي</a></li>
-        <li><a href="/login" style="background: #dc3545; padding: 5px 10px; border-radius: 4px; color: white; text-decoration: none; ">تسجيل خروج</a></li>
+        <li><a href="/logout" class="logout-btn">تسجيل خروج</a></li>
     </ul>
 </div>
 
 <div class="container">
-    <h3><%= editItem ? 'تعديل صنف' : 'إضافة صنف جديد' %></h3>
+
+    <!-- أزرار اختيار المخزن -->
+    <div class="store-nav">
+        <a href="/shateb/dashboard?store=مستهلك" class="store-btn <%= selectedStore === 'مستهلك' ? 'active' : 'inactive' %>">
+            مخزن المستهلك
+        </a>
+        <a href="/shateb/dashboard?store=مستديم" class="store-btn <%= selectedStore === 'مستديم' ? 'active' : 'inactive' %>">
+            مخزن المستديم
+        </a>
+        <a href="/shateb/dashboard?store=كيماويات" class="store-btn <%= selectedStore === 'كيماويات' ? 'active' : 'inactive' %>">
+            مخزن الكيماويات
+        </a>
+    </div>
+
+    <h3><%= editItem ? 'تعديل صنف في (' + selectedStore + ')' : 'إضافة صنف جديد إلى (' + selectedStore + ')' %></h3>
+    
     <form action="<%= editItem ? '/shateb/update-item/' + editItem.id : '/shateb/add-item' %>" method="POST">
+        <!-- إرسال نوع المخزن المختار بشكل خفي -->
+        <input type="hidden" name="store_type" value="<%= selectedStore %>">
+
         <div class="form-row">
             <div class="form-group">
                 <label>رقم الصنف</label>
@@ -64,11 +90,11 @@
         </div>
         <button type="submit" class="btn-add"><%= editItem ? 'تحديث الصنف' : 'حفظ الصنف' %></button>
         <% if (editItem) { %>
-            <a href="/shateb/dashboard" style="margin-right: 10px; color: #dc3545; text-decoration: none;">إلغاء التعديل</a>
+            <a href="/shateb/dashboard?store=<%= selectedStore %>" style="margin-right: 10px; color: #dc3545; text-decoration: none;">إلغاء التعديل</a>
         <% } %>
     </form>
 
-    <h3 style="margin-top: 40px;">قائمة الأصناف المضافة</h3>
+    <h3 style="margin-top: 40px;">قائمة أصناف (<%= selectedStore %>) المضافة</h3>
     <table>
         <thead>
             <tr>
@@ -82,7 +108,7 @@
             </tr>
         </thead>
         <tbody>
-            <% if (items.length > 0) { %>
+            <% if (items && items.length > 0) { %>
                 <% items.forEach((item, index) => { %>
                     <tr>
                         <td><%= index + 1 %></td>
@@ -90,15 +116,13 @@
                         <td><%= item.item_name %></td>
                         <td><%= item.quantity %></td>
                         <td><%= item.price %></td>
-                        <td><%= (item.quantity * item.price).toFixed(2) %></td>
+                        <td><%= ((item.quantity || 0) * (item.price || 0)).toFixed(2) %></td>
                         <td>
                             <div class="action-cell">
-                                <!-- زر التعديل مع كلمة تعديل -->
-                                <a href="/shateb/edit-item/<%= item.id %>" class="action-item edit-link" title="تعديل">
+                                <a href="/shateb/edit-item/<%= item.id %>?store=<%= selectedStore %>" class="action-item edit-link" title="تعديل">
                                     ✏️ تعديل
                                 </a>
-                                <!-- زر الحذف مع كلمة حذف -->
-                                <a href="/shateb/delete-item/<%= item.id %>" class="action-item delete-link" title="حذف" onclick="return confirm('هل أنت متأكد من الحذف؟')">
+                                <a href="/shateb/delete-item/<%= item.id %>?store=<%= selectedStore %>" class="action-item delete-link" title="حذف" onclick="return confirm('هل أنت متأكد من الحذف؟')">
                                     🗑️ حذف
                                 </a>
                             </div>
@@ -107,7 +131,7 @@
                 <% }) %>
             <% } else { %>
                 <tr>
-                    <td colspan="7">لا توجد أصناف مضافة حتى الآن</td>
+                    <td colspan="7">لا توجد أصناف مضافة في <%= selectedStore %> حتى الآن</td>
                 </tr>
             <% } %>
         </tbody>

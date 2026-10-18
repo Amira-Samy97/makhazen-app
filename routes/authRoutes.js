@@ -46,11 +46,4 @@ router.get('/manager/users/delete/:id', inventoryController.deleteUser);
 // تعديل بيانات مستخدم
 router.post('/manager/users/edit/:id', inventoryController.updateUser);
 
-// // مسارات لوحة تحكم أمين المخزن
-// router.get('/storekeeper/dashboard', inventoryController.getStorekeeperDashboard);
-// router.post('/storekeeper/add', inventoryController.addStoreTransaction);
-// router.get('/storekeeper/edit/:id', inventoryController.getEditStoreTransaction);
-// router.post('/storekeeper/update/:id', inventoryController.updateStoreTransaction);
-// router.get('/storekeeper/delete/:id', inventoryController.deleteStoreTransaction);
-// router.get('/storekeeper/warehouse', inventoryController.getWarehouseView);
 module.exports = router;
